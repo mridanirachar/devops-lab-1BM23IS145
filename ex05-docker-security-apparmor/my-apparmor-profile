@@ -1,0 +1,12 @@
+#include <tunables/global>
+
+/usr/bin/python3 {
+    deny /etc/** r,
+    deny /var/** rw,
+    network inet stream,
+    /app/** rwk,
+    deny /bin/** rmix,
+    deny /usr/bin/** rmix,
+    capability net_bind_service,
+    deny capability sys_admin,
+}
