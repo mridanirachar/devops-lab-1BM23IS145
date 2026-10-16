@@ -1,1 +1,1 @@
-# DevOps Lab - Mridula R Achar (1BM23IS145)
+# DevOps Lab - Mridani R Achar (1BM23IS145)
