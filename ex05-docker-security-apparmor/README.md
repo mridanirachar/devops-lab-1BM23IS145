@@ -28,8 +28,8 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop
 2. App in browser: ![](screenshots/02-browser.png)
 3. Loading the profile fails: ![](screenshots/03-apparmor-parser-error.png)
 4. Profile requested but not enforced: ![](screenshots/04-profile-not-enforced.png)
-5. `apply_apparmor.py` output: ![](screenshots/05-apply-script.png)
-6. `test_restricted_actions.py` output: ![](screenshots/06-test-script.png)
+5. `apply_apparmor_extended.py` output: ![](screenshots/05-apply-script.png)
+6. `test_restricted_actions_extended.py` output: ![](screenshots/06-test-script.png)
 
 ## Observations
 | Check | Expected (manual) | Observed |
@@ -59,3 +59,12 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop
 
 ## Result
 The Flask app was containerized and the AppArmor profile was created and applied via both the Docker CLI and the Docker SDK. On WSL2 the kernel has AppArmor disabled, so the profile was accepted but not enforced; this was verified and documented with evidence.
+
+## Evidence: the manual's original files (run exactly as written)
+`Dockerfile`, `apply_apparmor.py` and `test_restricted_actions.py` are now the manual's unmodified versions. The extended scripts used on Oct 13 are kept as `apply_apparmor_extended.py` and `test_restricted_actions_extended.py` (they additionally print the *enforced* profile from `AppArmorProfile`).
+
+| Manual step | Result | Screenshot |
+|---|---|---|
+| `docker build -t flask-apparmor .` with the manual's Dockerfile | Builds successfully (`--network=host` used only because of a slow network) | ![](screenshots/07-manual-dockerfile-build.png) |
+| `python apply_apparmor.py` | `BuildError: pip install flask returned a non-zero code` – the script rebuilds the image itself and pip could not reach PyPI on this network. The same check worked on Oct 13 (`05-apply-script.png`) | ![](screenshots/08-manual-apply-script-network.png) |
+| `python test_restricted_actions.py` | `/etc/passwd`: **Exit Code 0** (manual expects 1); `/bin/bash`: **Exit Code 0** (manual expects 126) – confirms the profile is not enforced on WSL2 | ![](screenshots/09-manual-test-script.png) |
