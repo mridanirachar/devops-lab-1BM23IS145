@@ -51,3 +51,13 @@ The manual builds the image with `eval $(minikube docker-env)`. That only works 
 
 ## Result
 The Flask app was deployed on Minikube via a YAML Deployment, was unreachable until a NodePort Service was added, and then responded with `Hello from Flask on Kubernetes!`.
+
+## Evidence: the manual's Step 4 and Dockerfile (run exactly as written)
+| Manual step | Result | Screenshot |
+|---|---|---|
+| `minikube docker-env` | Runs, but warns: *"Using the docker-env command with the containerd runtime is a highly experimental feature"* | ![](screenshots/09-manual-docker-env.png) |
+| `eval $(minikube docker-env)` then `docker build -t flask-app .` | `ERROR: failed to build: Error response from daemon: 404 page not found` – images cannot be built inside a containerd-based Minikube this way | ![](screenshots/10-manual-build-in-minikube.png) |
+| Manual's Dockerfile (`COPY . /app`), built on the host and loaded with `minikube image load` | Image `flask-app:latest` available in the cluster | ![](screenshots/11-rebuild-copy-dot.png) |
+| Deployment + Service, `curl` via `minikube service --url` | `Hello from Flask on Kubernetes!` | ![](screenshots/12-works-with-manual-dockerfile.png) |
+
+All files in this folder (`app.py`, `Dockerfile`, `flask-deployment.yaml`) are now identical to the manual. The only change is *how* the image reaches the cluster: `minikube image load` instead of `eval $(minikube docker-env)`.
