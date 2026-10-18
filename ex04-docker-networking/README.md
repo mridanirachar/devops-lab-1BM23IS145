@@ -42,3 +42,16 @@ Configure a multi-container application (Flask + MySQL + Redis) on a user-define
 
 ## Result
 Successfully configured Docker bridge networking for a multi-container application and verified inter-container communication by container name (0% packet loss to `mysql` and `redis`).
+
+## Evidence: the manual's original version (run exactly as written)
+The manual's unmodified files are kept in [`manual-original/`](manual-original/) and were built and run as written:
+
+| Manual step | Result | Screenshot |
+|---|---|---|
+| `docker build` with the manual's Dockerfile | Builds successfully | ![](screenshots/05-manual-build.png) |
+| `docker run -d --name mysql --net=my-bridge-net mysql:latest` | `Exited (1)`: *Database is uninitialized and password option is not specified* | ![](screenshots/06-manual-mysql-exits.png) |
+| `docker run ... flask-api-manual` | `Exited (1)`: `ImportError: cannot import name 'url_quote' from 'werkzeug.urls'` | ![](screenshots/07-manual-flask-crash.png) |
+| `ping mysql` inside the Flask image | `exec: "ping": executable file not found in $PATH` | ![](screenshots/08-manual-no-ping.png) |
+
+These three failures are why the working version adds `MYSQL_ROOT_PASSWORD`, pins `Werkzeug==2.0.3` and installs `iputils-ping`.
+`host="0.0.0.0"` is not needed for the manual's steps (which only test with `ping`); it was added only to also verify the API from the browser (`03-browser.png`).
