@@ -26,7 +26,7 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driv
 | Manual | Problem | Fix |
 |---|---|---|
 | `COPY ex3-flash-sale.py` but gunicorn runs `app:app` | gunicorn cannot import `app`, Pod crashes | File saved as `app.py` |
-| `docker push` to Docker Hub | Needs a registry account; not needed locally | `minikube image load flashsale:1.0` + `imagePullPolicy: Never` |
+| `docker push` to Docker Hub | Needs a registry account; not needed locally | `minikube image load flashsale:1.0` |
 | YAML applied before the image is built | Pods fail to find the image | Build and load first, then apply |
 | ReplicaSet named `flashsale-rs`, later commands use `flask-app-rs` | `NotFound` error | Used `flashsale-rs` throughout |
 | `minikube delete` at start | Unnecessarily destroys the cluster | Skipped |
@@ -55,3 +55,14 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driv
 
 ## Result
 The flash sale app was scaled from 3 to 5 replicas, recovered automatically from a deleted Pod, and its Service distributed requests across multiple Pods.
+
+## Evidence: the manual's original version (run exactly as written)
+The manual's Dockerfile and file name are kept in [`manual-original/`](manual-original/). `flashsale-replicaset.yaml` is now identical to the manual (the extra `imagePullPolicy: Never` was removed).
+
+| Manual step | Result | Screenshot |
+|---|---|---|
+| Apply the YAML (Step 4) before building/loading the image (Step 5) | Pods stuck in `ContainerCreating` → `ImagePullBackOff`: `Failed to pull image "docker.io/library/flashsale:1.0"` – Kubernetes looks for the image on Docker Hub | ![](screenshots/07-manual-order-image-error.png) |
+| After `minikube image load flashsale:1.0`, pods deleted and recreated by the ReplicaSet | All 3 pods `Running`, without `imagePullPolicy: Never` | ![](screenshots/08-running-without-never.png) |
+| `kubectl scale rs flask-app-rs --replicas=5` | `Error from server (NotFound): replicasets.apps "flask-app-rs" not found` – the YAML creates `flashsale-rs` | ![](screenshots/09-manual-wrong-rs-name.png) |
+| Manual's Dockerfile (`COPY ex3-flash-sale.py .`) | Builds successfully | ![](screenshots/10-manual-dockerfile-build.png) |
+| Run the manual's image | `ModuleNotFoundError: No module named 'app'` → `Worker failed to boot` – gunicorn runs `app:app` but the file is `ex3-flash-sale.py` | ![](screenshots/11-manual-gunicorn-crash.png) |

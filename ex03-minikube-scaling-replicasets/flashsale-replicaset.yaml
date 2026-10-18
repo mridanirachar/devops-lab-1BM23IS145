@@ -17,7 +17,6 @@ spec:
       containers:
       - name: flashsale-container
         image: flashsale:1.0
-        imagePullPolicy: Never
         ports:
         - containerPort: 5000
         readinessProbe:
