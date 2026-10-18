@@ -24,4 +24,4 @@ Copies of those files are also included in the `ex08` and `ex09` folders here.
 
 ## Known environment limitations (documented with evidence in each README)
 - **Exercise 5:** the WSL2 kernel has AppArmor disabled, so the profile is accepted but not enforced.
-- **Exercise 6:** the manual's Jenkins pipeline stops at "Pre-check Docker" because the Jenkins container has no Docker; the services were run manually instead.
+- **Exercise 6:** the manual's Jenkinsfile needed 4 documented changes (placeholder path, missing Dockerfile, network, bind mounts) to run; the adapted pipeline finishes with SUCCESS.

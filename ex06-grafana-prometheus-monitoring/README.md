@@ -11,7 +11,9 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Python 3.12, prometheus-clien
 - `prometheus.yml` – scrape config (prometheus + delivery_service) and rule file
 - `alert_rules.yml` – `HighPendingDeliveries` (> 10 for 15s) and `HighAverageDeliveryTime` (> 30)
 - `grafana-dashboard.json` – dashboard with the 4 panels required by the manual
-- `Jenkinsfile` – the manual's pipeline, unchanged
+- `Jenkinsfile.manual` – the manual's pipeline, unchanged
+- `Jenkinsfile` – the adapted pipeline that runs successfully (see below)
+- `Dockerfile` – image for `delivery_metrics` (not provided by the manual)
 
 ## Steps (as per the manual)
 1. `pip3 install prometheus-client`; create and run `delivery_metrics.py`; check `http://localhost:8000/metrics`
@@ -65,3 +67,27 @@ The same services were therefore run manually (steps 1–3), which the pipeline 
 
 ## Result
 Delivery metrics were exposed on `/metrics`, scraped by Prometheus, visualised live on a 4-panel Grafana dashboard, and the alert rules fired (`HighPendingDeliveries`, `HighAverageDeliveryTime`) when pending deliveries were raised to 50–100. The Jenkins pipeline was run as given and its failure point documented.
+
+## Update: pipeline made to run successfully
+The manual's Expected Output 4 is *"Jenkins Logs: Successful pipeline build with logs for Docker commands"*. To achieve it:
+
+**Jenkins setup** (Jenkins data preserved: container committed to an image and the same `jenkins_home` volume re-attached)
+- Jenkins re-created with the Docker socket mounted: `-v /var/run/docker.sock:/var/run/docker.sock`
+- Docker CLI installed inside Jenkins (`apt-get install docker-cli`), socket made accessible (`chmod 666 /var/run/docker.sock`)
+- Source files copied into the Jenkins container at `/delivery_monitoring`
+
+**Jenkinsfile changes** (`Jenkinsfile.manual` → `Jenkinsfile`)
+| Stage | Manual | Change | Reason |
+|---|---|---|---|
+| Setup Workspace | `localSourcePath = '/path/to/your/local/files' // Replace with your actual path` | `'/delivery_monitoring'` | Placeholder the manual asks to replace |
+| Setup Workspace | – | Also copy `Dockerfile` | Manual provides no Dockerfile for `delivery_metrics` |
+| Build Docker Image | `docker build -t delivery_metrics .` | `--network=host` | pip could not reach PyPI from the default build network |
+| Run Prometheus & Grafana | `docker run -v $WORKSPACE/...` | `docker create` + `docker cp` + `docker start` | `$WORKSPACE` paths exist inside the Jenkins container, not on the Docker host, so bind mounts cannot work |
+
+**Result:** build #3 `Finished: SUCCESS`; the pipeline started `delivery_metrics`, Prometheus and Grafana, and both Prometheus targets were UP.
+
+24. Jenkins re-created, all jobs preserved: ![](screenshots/24-jenkins-recreated.png)
+25. Jenkins can run Docker: ![](screenshots/25-jenkins-docker-access.png)
+26. Adapted Prometheus stage: ![](screenshots/26-jenkinsfile-changes.png)
+27. Pipeline build #3 SUCCESS: ![](screenshots/27-pipeline-success.png)
+28. Targets UP (stack started by Jenkins): ![](screenshots/28-pipeline-targets-up.png)

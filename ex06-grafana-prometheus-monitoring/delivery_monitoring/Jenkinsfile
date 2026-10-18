@@ -28,7 +28,7 @@ pipeline {
             steps {
                 script {
                     // Define the local source path where the files are located
-                    def localSourcePath = '/path/to/your/local/files' // Replace with your actual path
+                    def localSourcePath = '/delivery_monitoring' // replaced with the actual path
                     def workspacePath = env.WORKSPACE
 
                     // Copy necessary files into the Jenkins workspace
@@ -36,13 +36,14 @@ pipeline {
                     cp ${localSourcePath}/delivery_metrics.py ${workspacePath}/
                     cp ${localSourcePath}/prometheus.yml ${workspacePath}/
                     cp ${localSourcePath}/alert_rules.yml ${workspacePath}/
+                    cp ${localSourcePath}/Dockerfile ${workspacePath}/
                     """
                 }
             }
         }
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t delivery_metrics .'
+                sh 'docker build --network=host -t delivery_metrics .'
             }
         }
         stage('Run Application') {
@@ -53,10 +54,10 @@ pipeline {
         stage('Run Prometheus & Grafana') {
             steps {
                 sh '''
-                docker run -d --name prometheus -p 9090:9090 \
-                  -v $WORKSPACE/prometheus.yml:/etc/prometheus/prometheus.yml \
-                  -v $WORKSPACE/alert_rules.yml:/etc/prometheus/alert_rules.yml \
-                  prom/prometheus
+                docker create --name prometheus -p 9090:9090 prom/prometheus
+                docker cp $WORKSPACE/prometheus.yml prometheus:/etc/prometheus/prometheus.yml
+                docker cp $WORKSPACE/alert_rules.yml prometheus:/etc/prometheus/alert_rules.yml
+                docker start prometheus
                 docker run -d --name grafana -p 3000:3000 grafana/grafana
                 '''
             }
