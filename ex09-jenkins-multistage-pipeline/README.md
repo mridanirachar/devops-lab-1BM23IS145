@@ -28,7 +28,7 @@ Jenkins 2.580.1 in Docker (Debian trixie), Python 3.13.5, Flask 3.1.1
 | New folder + `git init`, push to `devops-sample-code` | Would be rejected: repo already contains the Exercise 8 commit | Added the files to the existing local clone of `devops-sample-code` |
 | Default Branch Specifier | `*/master` does not exist (see Exercise 8) | `*/main` |
 | `apt-get update` | `Connection refused` to `deb.debian.org:80` from inside the container | Switched apt sources to https: `sed -i 's\|http://deb.debian.org\|https://deb.debian.org\|g' /etc/apt/sources.list.d/debian.sources` |
-| `apt install python3.11-venv` | Not needed: the pipeline does not use a venv, and the image ships Python 3.13 | Skipped |
+| `apt install python3.11-venv` | Run as written: `Unable to locate package python3.11-venv` (the Jenkins image ships Python 3.13, not 3.11). Not needed: the pipeline does not use a venv | Could not be installed; pipeline still succeeds |
 
 ## Screenshots
 1. App files: ![](screenshots/01-app-files.png)
@@ -40,6 +40,7 @@ Jenkins 2.580.1 in Docker (Debian trixie), Python 3.13.5, Flask 3.1.1
 7. Python and Flask installed: ![](screenshots/07-python-installed.png)
 8. Build #2 succeeds: ![](screenshots/08-build-2-success.png)
 9. Build history (#1 failed, #2 passed): ![](screenshots/09-build-history.png)
+10. Manual step `apt install python3.11-venv` (package does not exist): ![](screenshots/10-python311-venv-not-found.png)
 
 ## Result
 After installing Python in the Jenkins container, all five stages passed: the unit test ran OK, the app was copied to `python-app-deploy`, started in the background and tested again, ending with `Hello, Jenkins Multi-Stage Pipeline!` and `Finished: SUCCESS`.
