@@ -5,7 +5,7 @@ metadata:
   labels:
     app: flashsale
 spec:
-  replicas: 3
+  replicas: 3  ## Number of replicas (copies of flashsale app) to run
   selector:
     matchLabels:
       app: flashsale
