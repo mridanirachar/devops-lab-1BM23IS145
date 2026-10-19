@@ -13,6 +13,7 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driv
 
 ## Steps
 0. Fresh single-node cluster (manual Steps 1-2): `minikube stop`, `minikube delete`, `minikube start --nodes=1`, `kubectl get nodes` (1 node, `Ready`)
+0. Build and push to Docker Hub (manual): `docker build -t mridanii/flashsale:1.0 .`, `docker push mridanii/flashsale:1.0` (https://hub.docker.com/r/mridanii/flashsale). The YAML uses `flashsale:1.0`, so the same app is also built locally under that name:
 1. Build image: `docker build -t flashsale:1.0 .`
 2. Load into Minikube: `minikube image load flashsale:1.0`
 3. Apply: `kubectl apply -f flashsale-replicaset.yaml` → 3 Pods running
@@ -27,12 +28,12 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driv
 | Manual | Problem | Fix |
 |---|---|---|
 | `COPY ex3-flash-sale.py` but gunicorn runs `app:app` | gunicorn cannot import `app`, Pod crashes | File saved as `app.py` |
-| `docker push` to Docker Hub | Needs a registry account; not needed locally | `minikube image load flashsale:1.0` |
 | YAML applied before the image is built | Pods fail to find the image | Build and load first, then apply |
 | ReplicaSet named `flashsale-rs`, later commands use `flask-app-rs` | `NotFound` error | Used `flashsale-rs` throughout |
 
 ## Screenshots
 0. Fresh single-node cluster: ![](screenshots/12-fresh-cluster.png)
+0. Image pushed to Docker Hub: ![](screenshots/13-docker-push.png)
 1. Image loaded into Minikube: ![](screenshots/01-image-loaded.png)
 2. ReplicaSet with 3 Pods: ![](screenshots/02-replicaset-3-pods.png)
 3. Scaled to 5 Pods: ![](screenshots/03-scaled-to-5.png)
