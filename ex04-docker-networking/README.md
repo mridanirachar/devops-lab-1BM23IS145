@@ -17,7 +17,7 @@ Configure a multi-container application (Flask + MySQL + Redis) on a user-define
    - `docker run -d --name redis --net=my-bridge-net redis:latest`
    - `docker run -d --name flask --net=my-bridge-net -p 5001:5001 flask-api`
 5. Verify: `docker ps` and browser at `http://localhost:5001/about`
-6. Test connectivity: `docker exec -it flask bash`, then `ping -c 4 mysql` and `ping -c 4 redis`
+6. Test connectivity: `docker exec -it flask bash`, install ping with `apt-get update && apt-get install -y iputils-ping`, then `ping -c 4 mysql` and `ping -c 4 redis`
 7. Clean up: stop/remove containers and remove the network
 
 ## Fixes made to the manual's version
@@ -26,7 +26,7 @@ Configure a multi-container application (Flask + MySQL + Redis) on a user-define
 | MySQL run without a root password | MySQL container exits immediately | Added `-e MYSQL_ROOT_PASSWORD=root` |
 | Flask bound to 127.0.0.1 (default) | API not reachable from host | `app.run(host="0.0.0.0", ...)` |
 | Flask 2.0.1 with newer Werkzeug | ImportError on startup | Pinned `Werkzeug==2.0.3` |
-| `python:3.9-slim` has no `ping` | `ping: command not found` | Installed `iputils-ping` in Dockerfile |
+| `python:3.9-slim` has no `ping` | `ping: command not found` | Installed `iputils-ping` inside the running container (Dockerfile left exactly as in the manual) |
 
 ## Screenshots
 1. Build and network: ![](screenshots/01-build.png)
@@ -53,5 +53,5 @@ The manual's unmodified files are kept in [`manual-original/`](manual-original/)
 | `docker run ... flask-api-manual` | `Exited (1)`: `ImportError: cannot import name 'url_quote' from 'werkzeug.urls'` | ![](screenshots/07-manual-flask-crash.png) |
 | `ping mysql` inside the Flask image | `exec: "ping": executable file not found in $PATH` | ![](screenshots/08-manual-no-ping.png) |
 
-These three failures are why the working version adds `MYSQL_ROOT_PASSWORD`, pins `Werkzeug==2.0.3` and installs `iputils-ping`.
+These three failures are why the working version adds `MYSQL_ROOT_PASSWORD`, pins `Werkzeug==2.0.3` and installs `iputils-ping` inside the container.
 `host="0.0.0.0"` is not needed for the manual's steps (which only test with `ping`); it was added only to also verify the API from the browser (`03-browser.png`).
