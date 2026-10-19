@@ -12,6 +12,7 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driv
 - `flashsale-replicaset.yaml` – ReplicaSet (3 replicas, readiness/liveness probes, CPU/memory limits) + ClusterIP Service
 
 ## Steps
+0. Fresh single-node cluster (manual Steps 1-2): `minikube stop`, `minikube delete`, `minikube start --nodes=1`, `kubectl get nodes` (1 node, `Ready`)
 1. Build image: `docker build -t flashsale:1.0 .`
 2. Load into Minikube: `minikube image load flashsale:1.0`
 3. Apply: `kubectl apply -f flashsale-replicaset.yaml` → 3 Pods running
@@ -29,9 +30,9 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driv
 | `docker push` to Docker Hub | Needs a registry account; not needed locally | `minikube image load flashsale:1.0` |
 | YAML applied before the image is built | Pods fail to find the image | Build and load first, then apply |
 | ReplicaSet named `flashsale-rs`, later commands use `flask-app-rs` | `NotFound` error | Used `flashsale-rs` throughout |
-| `minikube delete` at start | Unnecessarily destroys the cluster | Skipped |
 
 ## Screenshots
+0. Fresh single-node cluster: ![](screenshots/12-fresh-cluster.png)
 1. Image loaded into Minikube: ![](screenshots/01-image-loaded.png)
 2. ReplicaSet with 3 Pods: ![](screenshots/02-replicaset-3-pods.png)
 3. Scaled to 5 Pods: ![](screenshots/03-scaled-to-5.png)
