@@ -24,7 +24,7 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driv
 10. Clean up: `kubectl delete -f flask-deployment.yaml`
 
 ## Change from the manual
-The manual builds the image with `eval $(minikube docker-env)`. That only works when Minikube uses the Docker container runtime; this cluster uses **containerd**, so the image was built with the host Docker and then copied into the cluster with `minikube image load flask-app:latest`. With `imagePullPolicy: Never`, Kubernetes uses this local image instead of pulling from Docker Hub.
+The manual builds the image with `eval $(minikube docker-env)`. That only works when Minikube uses the Docker container runtime; this cluster uses **containerd**, so the image was built with the host Docker and then copied into the cluster with `minikube image load flask-app:latest`. With `imagePullPolicy: Never`, Kubernetes uses this local image instead of pulling from Docker Hub. Starting Minikube with `--container-runtime=docker` would let the manual step run exactly as written; it was not redone so that the cluster and screenshots here stay consistent.
 
 ## Screenshots
 1. Image loaded into Minikube: ![](screenshots/01-image-loaded.png)

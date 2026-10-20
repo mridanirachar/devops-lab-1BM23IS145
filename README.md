@@ -22,6 +22,18 @@ All exercises follow the DevOps Lab Manual (SunagP/DevOps-Lab). Each folder cont
 As instructed in the manual (Exercise 8, Step 1a: *"Repository Name: devops-sample-code"*), the code that Jenkins pulls is in a separate repository: https://github.com/mridanirachar/devops-sample-code
 Copies of those files are also included in the `ex08` and `ex09` folders here.
 
-## Known environment limitations (documented with evidence in each README)
-- **Exercise 5:** the WSL2 kernel has AppArmor disabled, so the profile is accepted but not enforced.
-- **Exercise 6:** the manual's Jenkinsfile needed 4 documented changes (placeholder path, missing Dockerfile, network, bind mounts) to run; the adapted pipeline finishes with SUCCESS.
+## Changes from the manual (summary)
+Each change is explained in the README of that exercise, with a screenshot of the manual version failing where it fails.
+
+| Ex | Change from the manual | Reason |
+|---|---|---|
+| 1 | None | - |
+| 2 | Image copied into Minikube with `minikube image load` instead of building after `eval $(minikube docker-env)` | This cluster uses the containerd runtime, so the docker-env build fails (`404 page not found`). Starting Minikube with `--container-runtime=docker` would allow the manual step. |
+| 3 | Dockerfile copies `app.py` instead of `ex3-flash-sale.py`; `flashsale-rs` used instead of `flask-app-rs`; image loaded with `minikube image load` | gunicorn runs `app:app` (`ModuleNotFoundError`); the YAML creates `flashsale-rs` (`NotFound`); containerd as in Ex 2 |
+| 4 | `MYSQL_ROOT_PASSWORD` set; `Werkzeug==2.0.3` pinned; `ping` installed inside the running container | MySQL exits without a password; Flask 2.0.1 crashes with newer Werkzeug (`url_quote`); `python:3.9-slim` has no `ping` |
+| 5 | AppArmor profile is accepted but not enforced | The WSL2 kernel has AppArmor disabled |
+| 6 | `prometheus-client` from apt; Prometheus target `host.docker.internal:8000`; Prometheus run with `-p 9090:9090`; Jenkinsfile: 4 documented changes | `pip3` gives `externally-managed-environment` on Ubuntu 24.04; `172.17.0.1` is refused on Docker Desktop; host networking does not publish ports on Docker Desktop; placeholder path, missing Dockerfile, network and bind mounts in the Jenkinsfile |
+| 7 | None | - |
+| 8 | Branch `main` (`git branch -M main`) and Branch Specifier `*/main` | The manual pushes to `main`, but Git creates `master` by default |
+| 9 | apt sources switched to https inside Jenkins; `python3.11-venv` cannot be installed | Plain http is blocked on this network; the Jenkins image ships Python 3.13 |
+| 10 | Shopping Cart `namespace: default`; images checked with `minikube image ls`; `docker build --network=host` | The `devops-exercise` namespace is never created; `ssh -- docker images` fails on containerd; pip timed out during the build |

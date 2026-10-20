@@ -18,7 +18,7 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Python 3.12, prometheus-clien
 ## Steps (as per the manual)
 1. `pip3 install prometheus-client`; create and run `delivery_metrics.py`; check `http://localhost:8000/metrics`
 2. Create `prometheus.yml` and `alert_rules.yml`; run Prometheus in Docker; check Status → Targets and Alerts
-3. Run Grafana (`docker run -d --name grafana -p 3000:3000 grafana/grafana`); log in; add Prometheus data source `http://172.17.0.1:9090` (Save & test succeeded)
+3. Run Grafana (`docker run -d --name grafana -p 3000:3000 grafana/grafana`); log in; add Prometheus data source `http://172.17.0.1:9090` exactly as in the manual (Save & test succeeded). Grafana reaches Prometheus on the bridge IP `172.17.0.1` because Prometheus runs in Docker with port 9090 published; only the scrape target for the Python script, which runs outside Docker, needed `host.docker.internal` (see the table below)
 4. Dashboard with Total, Pending, On-the-Way Deliveries and Average Delivery Time panels
 5. Jenkins: check the container; create the Jenkinsfile; New Item → Pipeline → Pipeline script; run
 6. Simulate alerts: `pending = random.randint(50, 100)`; restart the script and Prometheus; alerts FIRING

@@ -6,9 +6,6 @@ Deploy a containerized web app (nginx, simulating a storefront page) as a Pod on
 ## Environment
 Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driver), Kubernetes v1.37.0, kubectl
 
-## Files
-- `pod.yaml` – exported definition of the `hello-k8s` Pod
-- `service.yaml` – exported definition of the `hello-k8s` NodePort Service
 
 ## Steps
 1. Start cluster: `minikube start`, verify with `kubectl get nodes` (status `Ready`)
@@ -16,8 +13,7 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driv
 3. Verify Pod: `kubectl get pods -o wide` (status `Running`, IP `10.244.0.3`)
 4. Expose as Service: `kubectl expose pod hello-k8s --type=NodePort --port=80`, verify with `kubectl get svc` (NodePort `32535`)
 5. Access in browser: `minikube service hello-k8s`
-6. Export definitions: `kubectl get pod hello-k8s -o yaml > pod.yaml`, `kubectl get svc hello-k8s -o yaml > service.yaml`
-7. Clean up: `kubectl delete svc hello-k8s`, `kubectl delete pod hello-k8s`
+6. Clean up: `kubectl delete svc hello-k8s`, `kubectl delete pod hello-k8s`
 
 ## Note on accessing the Service (WSL2 + Docker driver)
 `minikube service` first lists the NodePort URL `http://192.168.49.2:32535`, but that IP lives inside Docker Desktop's network and is not reachable from Windows. Minikube therefore starts a tunnel and provides `http://127.0.0.1:34027`, which works in the browser as long as the terminal stays open.
