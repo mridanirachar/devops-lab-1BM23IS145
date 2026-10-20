@@ -12,17 +12,17 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0 (docker driv
 - `flashsale-replicaset.yaml` – ReplicaSet (3 replicas, readiness/liveness probes, CPU/memory limits) + ClusterIP Service
 
 ## Steps
-0. Fresh single-node cluster (manual Steps 1-2): `minikube stop`, `minikube delete`, `minikube start --nodes=1`, `kubectl get nodes` (1 node, `Ready`)
-0. Build and push to Docker Hub (manual): `docker build -t mridanii/flashsale:1.0 .`, `docker push mridanii/flashsale:1.0` (https://hub.docker.com/r/mridanii/flashsale). The YAML uses `flashsale:1.0`, so the same app is also built locally under that name:
-1. Build image: `docker build -t flashsale:1.0 .`
-2. Load into Minikube: `minikube image load flashsale:1.0`
-3. Apply: `kubectl apply -f flashsale-replicaset.yaml` → 3 Pods running
-4. Scale: `kubectl scale rs flashsale-rs --replicas=5` → 5 Pods
-5. Self-healing: `kubectl delete pod flashsale-rs-gz25l` → replaced by `flashsale-rs-64l9r`, still 5 Pods
-6. Distribution: `kubectl get pods -o wide` → all 5 Pods on node `minikube`
-7. Load test from inside the cluster:
+1. Fresh single-node cluster (manual Steps 1-2): `minikube stop`, `minikube delete`, `minikube start --nodes=1`, `kubectl get nodes` (1 node, `Ready`)
+2. Build and push to Docker Hub (manual): `docker build -t mridanii/flashsale:1.0 .`, `docker push mridanii/flashsale:1.0` (https://hub.docker.com/r/mridanii/flashsale). The YAML uses `flashsale:1.0`, so the same app is also built locally under that name:
+3. Build image: `docker build -t flashsale:1.0 .`
+4. Load into Minikube: `minikube image load flashsale:1.0`
+5. Apply: `kubectl apply -f flashsale-replicaset.yaml` → 3 Pods running
+6. Scale: `kubectl scale rs flashsale-rs --replicas=5` → 5 Pods
+7. Self-healing: `kubectl delete pod flashsale-rs-gz25l` → replaced by `flashsale-rs-64l9r`, still 5 Pods
+8. Distribution: `kubectl get pods -o wide` → all 5 Pods on node `minikube`
+9. Load test from inside the cluster:
    `kubectl run buyer --image=curlimages/curl --rm -it --restart=Never -- sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do curl -s flashsale-svc/buy; echo; done'`
-8. Clean up: `kubectl delete -f flashsale-replicaset.yaml`
+10. Clean up: `kubectl delete -f flashsale-replicaset.yaml`
 
 ## Fixes made to the manual's version
 | Manual | Problem | Fix |

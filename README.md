@@ -1,7 +1,7 @@
 # DevOps Lab - Mridani R Achar (1BM23IS145)
 
 B.M.S. College of Engineering, Information Science and Engineering - DevOps Lab coursework.
-All exercises follow the DevOps Lab Manual (SunagP/DevOps-Lab). Each folder contains the code, screenshots and a README with steps, results and any deviations from the manual (each deviation was first run as written, and the failure is shown as evidence).
+All exercises follow the DevOps Lab Manual (SunagP/DevOps-Lab). Each folder contains the code, screenshots and a README with steps, results and any deviations from the manual (each change is explained, with a screenshot of the manual version failing where it fails; see the summary table at the bottom).
 
 **Environment:** Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Minikube v1.39.0, Kubernetes v1.37.0, Jenkins 2.580.1
 

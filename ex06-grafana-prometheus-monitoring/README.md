@@ -34,13 +34,13 @@ Windows 11 + WSL2 (Ubuntu 24.04) + Docker Desktop, Python 3.12, prometheus-clien
 | Grafana dashboard | Panels created via Dashboard → Import (JSON) | Same 4 panels and queries as the manual |
 | Jenkins `Exited` | Manual suggests `docker rm` and a fresh instance | `docker start jenkins`, to keep the Exercise 7–9 setup |
 
-## Jenkins pipeline result
+## Jenkins pipeline: the manual Jenkinsfile run unchanged
 The manual's Jenkinsfile was run unchanged. It stopped at **Pre-check Docker** with `docker: not found` (exit code 127) and the remaining stages were skipped. The pipeline cannot run as written because:
 1. The `jenkins/jenkins:lts` container has no Docker CLI or Docker socket (the pre-check is designed to catch exactly this)
 2. `localSourcePath` is a placeholder (`/path/to/your/local/files`)
 3. No Dockerfile for `delivery_metrics` is provided, so `docker build` would have nothing to build
 4. Containers named `prometheus` and `grafana` already exist, so `docker run --name` would conflict
-The same services were therefore run manually (steps 1–3), which the pipeline would otherwise automate.
+The same services were therefore first run manually (steps 1–3). The pipeline was then made to run with 4 small changes: see "Pipeline made to run successfully" below (build #3 `Finished: SUCCESS`).
 
 ## Screenshots
 1. pip blocked: ![](screenshots/01-pip-error.png)
@@ -66,9 +66,9 @@ The same services were therefore run manually (steps 1–3), which the pipeline 
 22. Pipeline stops at Pre-check Docker: ![](screenshots/23-jenkins-precheck-failed.png)
 
 ## Result
-Delivery metrics were exposed on `/metrics`, scraped by Prometheus, visualised live on a 4-panel Grafana dashboard, and the alert rules fired (`HighPendingDeliveries`, `HighAverageDeliveryTime`) when pending deliveries were raised to 50–100. The Jenkins pipeline was run as given and its failure point documented.
+Delivery metrics were exposed on `/metrics`, scraped by Prometheus, visualised live on a 4-panel Grafana dashboard, and the alert rules fired (`HighPendingDeliveries`, `HighAverageDeliveryTime`) when pending deliveries were raised to 50–100. The manual Jenkinsfile was first run unchanged and its failure point documented; with 4 documented changes the Jenkins pipeline then finished with `SUCCESS` (build #3) and started the whole stack.
 
-## Update: pipeline made to run successfully
+## Pipeline made to run successfully (build #3)
 The manual's Expected Output 4 is *"Jenkins Logs: Successful pipeline build with logs for Docker commands"*. To achieve it:
 
 **Jenkins setup** (Jenkins data preserved: container committed to an image and the same `jenkins_home` volume re-attached)
