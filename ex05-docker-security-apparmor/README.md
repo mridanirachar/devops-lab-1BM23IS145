@@ -66,5 +66,5 @@ The Flask app was containerized and the AppArmor profile was created and applied
 | Manual step | Result | Screenshot |
 |---|---|---|
 | `docker build -t flask-apparmor .` with the manual's Dockerfile | Builds successfully (`--network=host` used only because of a slow network) | ![](screenshots/07-manual-dockerfile-build.png) |
-| `python apply_apparmor.py` | `BuildError: pip install flask returned a non-zero code` – the script rebuilds the image itself and pip could not reach PyPI on this network. The same check worked on Oct 13 (`05-apply-script.png`) | ![](screenshots/08-manual-apply-script-network.png) |
+| `python apply_apparmor.py` | Runs as written: `Container started: 4f469c9fd463`, `AppArmor profile applied: ['apparmor=my-apparmor-profile']` (Docker records the profile; WSL2 does not enforce it) | ![](screenshots/08-manual-apply-script.png) |
 | `python test_restricted_actions.py` | `/etc/passwd`: **Exit Code 0** (manual expects 1); `/bin/bash`: **Exit Code 0** (manual expects 126) – confirms the profile is not enforced on WSL2 | ![](screenshots/09-manual-test-script.png) |
