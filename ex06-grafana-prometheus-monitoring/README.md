@@ -9,7 +9,7 @@ As a DevOps engineer at ZAPPTTO, a fast-paced delivery service, build a monitori
 | Operating system | Windows 11 + WSL2 (Ubuntu 24.04) |
 | Container platform | Docker Desktop |
 | Python | 3.12, `prometheus-client` |
-| Monitoring | Prometheus (`prom/prometheus`), Grafana (`grafana/grafana`) |
+| Monitoring | Prometheus (`prom/prometheus`), Grafana v13.2.4 (`grafana/grafana`) |
 | CI | Jenkins 2.580.1 (`jenkins/jenkins:lts`) |
 
 ## 3. Code directory structure (`delivery_monitoring/`)
@@ -23,7 +23,7 @@ Created as in the manual (`mkdir delivery_monitoring`, `cd delivery_monitoring`)
 | `Jenkinsfile.manual` | The manual's pipeline, unchanged |
 | `Jenkinsfile` | The pipeline with the 4 changes needed to run (Step 5) |
 | `Dockerfile` | Image for `delivery_metrics`, needed by the pipeline (not provided by the manual) |
-| `grafana-dashboard.json` | Export of the 4-panel dashboard from Step 4 |
+| `grafana-dashboard.json` | JSON of the 4-panel dashboard built in Step 4 |
 
 ## 4. Steps (in the order of the manual)
 
@@ -87,6 +87,12 @@ average_delivery_time_count 93.0
 average_delivery_time_sum 2726.354273546113
 ```
 ![/metrics endpoint](screenshots/04-metrics-page.png)
+
+The manual's command, run in the terminal:
+```bash
+curl http://localhost:8000/metrics
+```
+![curl /metrics](screenshots/29-curl-metrics.png)
 
 ### Step 2a: Configure Prometheus
 `prometheus.yml`:
@@ -171,33 +177,73 @@ Both targets are now **UP**:
 
 ![Alerts with normal values](screenshots/13-alerts.png)
 
+**Expected output 2 – Prometheus query.** In the Prometheus UI (Query → Graph tab, range `5m`) each metric was queried. Prometheus scrapes every 1 minute (default `scrape_interval`), so the lines are step graphs that change once per scrape. The legend shows `job="delivery_service"`, `instance="host.docker.internal:8000"`, i.e. the values come from the Python script. (Times on the x-axis are UTC; 09:28 UTC = 14:58 IST.)
+
+`total_deliveries`:
+
+![Prometheus graph total_deliveries](screenshots/30-prom-graph-total.png)
+
+`pending_deliveries` (always between 10 and 20, as in `random.randint(10, 20)`):
+
+![Prometheus graph pending_deliveries](screenshots/31-prom-graph-pending.png)
+
+`average_delivery_time_sum / average_delivery_time_count` (the average delivery time; the metric name is dropped from the legend because two series are divided):
+
+![Prometheus graph average delivery time](screenshots/32-prom-graph-avg-time.png)
+
 ### Step 3: Set up Grafana
 ```bash
 docker run -d --name grafana -p 3000:3000 grafana/grafana
 ```
 ![Grafana started](screenshots/14-grafana-run.png)
 
-**Step 3a/3b:** open `http://localhost:3000` and log in with `admin` / `admin` (the new password was set instead of skipped – no effect on the exercise):
+Prometheus and Grafana running together:
+```text
+CONTAINER ID   IMAGE             COMMAND                  STATUS         PORTS                    NAMES
+6f9967a049c6   grafana/grafana   "/run.sh"                Up 19 seconds  0.0.0.0:3000->3000/tcp   grafana
+b79fd32992af   prom/prometheus   "/bin/prometheus --c…"   Up 8 minutes   0.0.0.0:9090->9090/tcp   prometheus
+```
+![docker ps](screenshots/33-docker-ps-both.png)
 
-![Grafana home](screenshots/15-grafana-home.png)
+**Step 3a: Access Grafana** – `http://localhost:3000`:
 
-**Step 3c: Add Prometheus as a data source** – Connections → Data sources → Prometheus, URL `http://172.17.0.1:9090` exactly as in the manual, **Save & test** succeeded. Grafana reaches Prometheus on the bridge IP `172.17.0.1` because Prometheus runs in Docker with port 9090 published; only the scrape target for the Python script, which runs outside Docker, needed `host.docker.internal`.
+![Grafana login](screenshots/34-grafana-login.png)
 
-![Data source OK](screenshots/16-datasource-ok.png)
+**Step 3b: Log in** with `admin` / `admin`. Grafana asks to update the password; **Skip** was clicked, as in the manual:
+
+![Update password – Skip](screenshots/35-grafana-change-password.png)
+
+**Step 3c: Add Prometheus as a data source** – Connections → Data sources → Add new data source → Prometheus, Prometheus server URL `http://172.17.0.1:9090` exactly as in the manual:
+
+![Data source URL](screenshots/36-grafana-datasource-url.png)
+
+**Save & test** → `Successfully queried the Prometheus API.`
+
+![Data source OK](screenshots/37-grafana-datasource-ok.png)
+
+Grafana reaches Prometheus on the Docker bridge IP `172.17.0.1` because Prometheus runs in Docker with port 9090 published; only the scrape target for the Python script, which runs outside Docker, needed `host.docker.internal`.
 
 ### Step 4: Create the dashboard
-A dashboard **Delivery Monitoring** with the four panels of the manual (created by importing `grafana-dashboard.json`, which contains exactly these queries):
+Dashboards → New → New dashboard → **+** (Add) → Panel → **Configure visualization**, data source `prometheus`, query editor switched from *Builder* to *Code*, query typed, **Run queries**, visualization *Time series*, title set, **Back**. Repeated for the four panels of the manual:
 
 | Panel | Query |
 |---|---|
 | Total Deliveries | `total_deliveries` |
 | Pending Deliveries | `pending_deliveries` |
-| On-the-Way Deliveries | `on_the_way_deliveries` |
+| On The Way Deliveries | `on_the_way_deliveries` |
 | Average Delivery Time | `average_delivery_time_sum / average_delivery_time_count` |
 
-**Expected output 3 – Grafana dashboard:**
+Panel editor for the first panel (time range *Last 15 minutes*):
 
-![Delivery Monitoring dashboard](screenshots/17-grafana-dashboard.png)
+![Panel editor](screenshots/38-grafana-panel-editor.png)
+
+For the fourth query Grafana shows the hint *"Selected metric is a counter. Consider calculating rate of counter by adding rate()"*. It is only a suggestion; the manual's query was kept unchanged.
+
+The dashboard was saved as **Delivery Monitoring**. **Expected output 3 – Grafana dashboard:**
+
+![Delivery Monitoring dashboard](screenshots/39-grafana-dashboard.png)
+
+`delivery_monitoring/grafana-dashboard.json` is the JSON of this dashboard, exported from Grafana's API (`/api/dashboards/uid/<uid>`).
 
 ### Step 5: Create the Jenkins pipeline
 **Step 5a – check the Jenkins container:** Jenkins from Exercises 7–9 had exited. Instead of `docker rm` and a fresh instance (which the manual allows), it was started again so that the Exercise 7–9 jobs stay intact:
@@ -287,8 +333,6 @@ The file in this repo was set back to `randint(10, 20)` afterwards, to match Ste
 | File names `alerts_rules.yml`, `prometheus.ym` in the text | – | `alert_rules.yml` / `prometheus.yml`, as in the manual's `docker run` command |
 | Prometheus `--network=host` | `localhost:9090` not reachable (Docker Desktop VM) | `-p 9090:9090`, as in the manual's own Jenkinsfile |
 | Target `172.17.0.1:8000` | `delivery_service` DOWN: `connection refused` | `host.docker.internal:8000`, as the manual's note recommends |
-| Grafana: skip password update | Password was changed instead | No effect on the exercise |
-| Grafana panels | Created by importing a JSON dashboard | Same 4 panels and queries as the manual |
 | Jenkins exited: `docker rm` + fresh instance | – | `docker start jenkins`, to keep the Exercise 7–9 setup |
 | Jenkinsfile | Build #2 fails at Pre-check Docker | 4 documented changes → build #3 `SUCCESS` |
 
@@ -296,7 +340,7 @@ The file in this repo was set back to `randint(10, 20)` afterwards, to match Ste
 | # | Expected output | Achieved |
 |---|---|---|
 | 1 | Metrics endpoint `http://localhost:8000/metrics` | ✅ Step 1 |
-| 2 | Prometheus query: graphs for `total_deliveries`, `pending_deliveries` and `average_delivery_time` | Partly: both targets UP and the metrics are graphed in Grafana (Step 4); no Prometheus Graph-tab screenshot |
+| 2 | Prometheus query: graphs for `total_deliveries`, `pending_deliveries` and `average_delivery_time` | ✅ Step 2 (Prometheus Graph tab) |
 | 3 | Grafana dashboard with delivery metrics | ✅ Step 4 |
 | 4 | Jenkins: successful pipeline build with logs for Docker commands | ✅ Build #3 `Finished: SUCCESS` |
 | 5 | Prometheus alerts for high pending deliveries | ✅ Step 6 (`HighPendingDeliveries` FIRING) |
