@@ -20,7 +20,7 @@ Secure a containerized Python Flask application with an AppArmor profile that re
 | `my-apparmor-profile` | AppArmor profile – identical to the manual |
 | `apply_apparmor.py` | Docker SDK script that runs the container with the profile – identical to the manual |
 | `test_restricted_actions.py` | Docker SDK script that tests restricted actions – identical to the manual |
-| `apply_apparmor_extended.py`, `test_restricted_actions_extended.py` | Extended versions that also print the *enforced* profile (`AppArmorProfile`) and remove the containers afterwards |
+| `extended/apply_apparmor_extended.py`, `extended/test_restricted_actions_extended.py` | Extended versions that also print the *enforced* profile (`AppArmorProfile`) and remove the containers afterwards |
 
 ## 4. Pre-requisites
 ```bash
