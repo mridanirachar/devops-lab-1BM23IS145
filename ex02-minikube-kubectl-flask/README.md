@@ -138,6 +138,18 @@ The image built in Step 4 is inside Minikube, and because of `imagePullPolicy: N
 
 ![Image in Minikube, Deployment and Pod running](screenshots/15-deploy-get-pods.png)
 
+The manual's Step 8 command selects the Pods by label:
+```bash
+kubectl get pods -l app=flask-app
+```
+```text
+NAME                         READY   STATUS    RESTARTS   AGE
+flask-app-59f7cdccb4-8cttm   1/1     Running   0          11s
+```
+*(Screenshot from the first run of the exercise, so the Pod name differs.)*
+
+![kubectl get pods -l app=flask-app](screenshots/02-deployment.png)
+
 ### Step 9: Describe the Deployment
 **Command:**
 ```bash

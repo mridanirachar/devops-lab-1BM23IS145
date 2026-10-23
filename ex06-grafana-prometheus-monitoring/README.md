@@ -246,7 +246,20 @@ The dashboard was saved as **Delivery Monitoring**. **Expected output 3 – Graf
 `delivery_monitoring/grafana-dashboard.json` is the JSON of this dashboard, exported from Grafana's API (`/api/dashboards/uid/<uid>`).
 
 ### Step 5: Create the Jenkins pipeline
-**Step 5a – check the Jenkins container:** Jenkins from Exercises 7–9 had exited. Instead of `docker rm` and a fresh instance (which the manual allows), it was started again so that the Exercise 7–9 jobs stay intact:
+**Step 5a – check the Jenkins container** (manual: `docker ps -a | grep jenkins`):
+```bash
+docker ps -a | grep jenkins
+docker start jenkins
+docker ps -a | grep jenkins
+```
+```text
+38c90c5cbf8e   jenkins-with-python:backup   "/usr/bin/tini -- /u…"   5 days ago   Exited (137) 44 seconds ago   jenkins
+jenkins
+38c90c5cbf8e   jenkins-with-python:backup   "/usr/bin/tini -- /u…"   5 days ago   Up Less than a second   0.0.0.0:8080->8080/tcp, 0.0.0.0:50000->50000/tcp   jenkins
+```
+![docker ps -a | grep jenkins](screenshots/40-jenkins-ps.png)
+
+Jenkins had exited. Instead of `docker rm` and a fresh instance (which the manual allows), it was started again so that the Exercise 7–9 jobs stay intact (the container is the one recreated later in this step, image `jenkins-with-python:backup`):
 
 ![Jenkins container started](screenshots/21-jenkins-status.png)
 
