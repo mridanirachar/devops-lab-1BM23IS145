@@ -313,7 +313,13 @@ kubectl delete -f flashsale-replicaset.yaml
 | Step 5: `docker build -t flask-app .` | Builds inside Minikube, but the tag does not match `flashsale:1.0` in the YAML | Also built inside Minikube as `flashsale:1.0` |
 | Step 7: `kubectl scale rs flask-app-rs` | `NotFound` – the YAML creates `flashsale-rs` | `kubectl scale rs flashsale-rs --replicas=5` |
 
-## 7. Q&A
+## 7. Key observations and learnings (from the manual)
+- **Pod distribution** – each Pod is an identical worker; scaling to 5 created clones (`6krj8`, `q98ms`) of the same app, and the Service spread `/buy` requests across them (`served_by_pod` changed between requests).
+- **Resiliency** – when `gz25l` was deleted, the ReplicaSet created `64l9r` within seconds, so the app kept 5 Pods and users would not notice downtime.
+- **Efficiency** – Pods are added with one command (`kubectl scale ... --replicas=5`) when demand spikes and can be removed the same way when it drops, instead of over-provisioning servers.
+- **Scalability in the real world** – this is how services like Netflix, YouTube or Swiggy scale their microservices for peak traffic.
+
+## 8. Q&A
 1. **What is the initial number of replicas in the ReplicaSet?** 3
 2. **How many Pods are running after applying the ReplicaSet configuration?** 3
 3. **What happens when you scale the ReplicaSet to 5 replicas?** Kubernetes creates 2 more Pods (`6krj8`, `q98ms`) to reach 5.
@@ -322,5 +328,5 @@ kubectl delete -f flashsale-replicaset.yaml
 6. **How many nodes are running?** 1 (`minikube`).
 7. **Where are the Pods running?** All 5 on the single node `minikube`, each with its own IP (`10.244.0.x`).
 
-## 8. Result
+## 9. Result
 The flash sale app ran as a ReplicaSet of 3 Pods, was scaled to 5, recovered automatically when a Pod was deleted, and its Service spread checkout requests across several Pods – the manual's expected outcomes.
