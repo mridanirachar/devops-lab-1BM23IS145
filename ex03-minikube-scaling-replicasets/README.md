@@ -11,7 +11,7 @@ During a flash sale (Flipkart Big Billion Days, Amazon Prime Day) traffic can ju
 |---|---|
 | Operating system | Windows 11 + WSL2 (Ubuntu 24.04) |
 | Container platform | Docker Desktop |
-| Kubernetes | Minikube v1.39.0 (docker driver, containerd runtime), Kubernetes v1.37.0 |
+| Kubernetes | Minikube v1.39.0 (docker driver, **Docker runtime**), Kubernetes v1.37.0 |
 | Registry | Docker Hub (`mridanii/flashsale`) |
 
 ## 4. Files in this folder
@@ -100,19 +100,20 @@ The image is public at https://hub.docker.com/r/mridanii/flashsale.
 ```bash
 minikube stop
 minikube delete
-minikube start --nodes=1
+minikube start --nodes=1 --container-runtime=docker
 kubectl get nodes
 ```
 **Output (end):**
 ```text
 💀  Removed all traces of the "minikube" cluster.
+🐳  Preparing Kubernetes v1.37.0 on Docker 29.7.2 ...
 🏄  Done! kubectl is now configured to use "minikube" cluster and "default" namespace by default
-NAME       STATUS   ROLES           AGE     VERSION
-minikube   Ready    control-plane   2m16s   v1.37.0
+NAME       STATUS   ROLES           AGE   VERSION
+minikube   Ready    control-plane   51s   v1.37.0
 ```
-One node, `minikube`, is `Ready`.
+One node, `minikube`, is `Ready`. `--container-runtime=docker` was added so that Step 5 (`eval $(minikube docker-env)` + `docker build`) works; with Minikube v1.39.0's default containerd runtime that build fails with `404 page not found` (see Exercise 2).
 
-![Fresh single-node cluster](screenshots/12-fresh-cluster.png)
+![Fresh single-node cluster](screenshots/14-fresh-cluster-docker.png)
 
 ### Step 3: Create `flashsale-replicaset.yaml`
 The file is identical to the manual: a ReplicaSet `flashsale-rs` with `replicas: 3`, image `flashsale:1.0`, readiness/liveness probes on `/health` and CPU/memory limits, plus a ClusterIP Service `flashsale-svc` (port 80 → 5000).
@@ -121,43 +122,81 @@ The file is identical to the manual: a ReplicaSet `flashsale-rs` with `replicas:
 **Command:**
 ```bash
 kubectl apply -f flashsale-replicaset.yaml
+kubectl get pods
 ```
 **Output:**
 ```text
 replicaset.apps/flashsale-rs created
 service/flashsale-svc created
+NAME                 READY   STATUS             RESTARTS   AGE
+flashsale-rs-6wmrs   0/1     ImagePullBackOff   0          26s
+flashsale-rs-nh8s8   0/1     ImagePullBackOff   0          26s
+flashsale-rs-xg4d8   0/1     ImagePullBackOff   0          26s
 ```
-**Following the manual's order exactly** (apply before the image exists in the cluster), the Pods cannot start, because Kubernetes tries to pull `flashsale:1.0` from Docker Hub:
-```text
-flashsale-rs-cbrdd   0/1   ContainerCreating   0   86s
-flashsale-rs-lct59   0/1   ImagePullBackOff    0   86s
-flashsale-rs-rjj25   0/1   ContainerCreating   0   86s
-Warning  Failed  pod/flashsale-rs-lct59  Failed to pull image "flashsale:1.0": ... "docker.io/library/flashsale:1.0" ...
-```
-![Manual order: ImagePullBackOff](screenshots/07-manual-order-image-error.png)
+Following the manual's order (apply **before** the image is built in Step 5), the Pods cannot start: the image `flashsale:1.0` is not in the cluster yet, so Kubernetes tries to pull it from Docker Hub.
 
-### Step 5: Build the image and make it available to Minikube
-The manual builds inside Minikube (`eval $(minikube docker-env)`, `docker build -t flask-app .`). Two problems: the tag `flask-app` does not match the image `flashsale:1.0` in the YAML, and building through `docker-env` fails on this containerd-based cluster (shown in Exercise 2). The image is therefore built as `flashsale:1.0` and copied into Minikube:
+![Apply before build: ImagePullBackOff](screenshots/15-apply-before-build.png)
+
+### Step 5: Build the Docker image inside Minikube
+**The manual's commands, run exactly as written:**
+```bash
+eval $(minikube docker-env)
+docker build -t flask-app .
+kubectl get pods
+```
+```text
+[+] Building 26.8s (10/10) FINISHED
+ => [3/4] COPY app.py .
+ => [4/4] RUN pip install --no-cache-dir flask gunicorn
+ => => naming to docker.io/library/flask-app
+NAME                 READY   STATUS             RESTARTS   AGE
+flashsale-rs-6wmrs   0/1     ImagePullBackOff   0          88s
+flashsale-rs-nh8s8   0/1     ImagePullBackOff   0          88s
+flashsale-rs-xg4d8   0/1     ImagePullBackOff   0          88s
+```
+The build runs inside Minikube's Docker daemon, but the Pods still fail: the manual tags the image `flask-app`, while the YAML uses `flashsale:1.0`.
+
+![Manual build: flask-app tag](screenshots/16-manual-build-flask-app.png)
+
+The image was therefore built again inside Minikube with the tag from the YAML, and the failed Pods were deleted so the ReplicaSet recreates them:
 ```bash
 docker build -t flashsale:1.0 .
-minikube image load flashsale:1.0
+docker images | grep -E 'flashsale|flask-app'
 kubectl delete pods -l app=flashsale
 kubectl get pods
 ```
-The ReplicaSet immediately recreates the deleted Pods, now with the image available:
 ```text
-pod "flashsale-rs-cbrdd" deleted from default namespace
-pod "flashsale-rs-lct59" deleted from default namespace
-pod "flashsale-rs-rjj25" deleted from default namespace
+ => => naming to docker.io/library/flashsale:1.0
+flashsale:1.0      8ef9e7cd8ea6   143MB
+flask-app:latest   8ef9e7cd8ea6   143MB
+pod "flashsale-rs-6wmrs" deleted from default namespace
+pod "flashsale-rs-nh8s8" deleted from default namespace
+pod "flashsale-rs-xg4d8" deleted from default namespace
 NAME                 READY   STATUS    RESTARTS   AGE
-flashsale-rs-hkfzp   1/1     Running   0          85s
-flashsale-rs-jthgh   1/1     Running   0          84s
-flashsale-rs-t9nxn   0/1     Running   0          85s
+flashsale-rs-55mmv   0/1     Running   0          3s
+flashsale-rs-j2n9x   0/1     Running   0          3s
+flashsale-rs-l69bc   0/1     Running   0          3s
 ```
-![Image loaded, Pods running](screenshots/08-running-without-never.png)
+Both tags point to the same image (`8ef9e7cd8ea6`). The new Pods start immediately because the image is now in Minikube (`0/1` until the readiness probe on `/health` passes).
+
+![Build as flashsale:1.0, Pods recreated](screenshots/17-build-flashsale-running.png)
+
+```bash
+kubectl get rs
+kubectl get pods
+```
+```text
+NAME           DESIRED   CURRENT   READY   AGE
+flashsale-rs   3         3         3       3m21s
+NAME                 READY   STATUS    RESTARTS   AGE
+flashsale-rs-55mmv   1/1     Running   0          42s
+flashsale-rs-j2n9x   1/1     Running   0          42s
+flashsale-rs-l69bc   1/1     Running   0          42s
+```
+![ReplicaSet ready](screenshots/18-pods-ready.png)
 
 ### Step 6: Verify the Pods
-*(The screenshots for Steps 6–11 come from the complete run of the exercise, so the Pod names differ from Step 5.)*
+*(The screenshots for Steps 6–11 come from an earlier complete run of the exercise, so the Pod names differ from Step 5.)*
 
 **Commands:**
 ```bash
@@ -269,8 +308,9 @@ kubectl delete -f flashsale-replicaset.yaml
 | Manual | What happened (screenshot above) | What was done |
 |---|---|---|
 | Dockerfile `COPY ex3-flash-sale.py .` | gunicorn `ModuleNotFoundError: No module named 'app'` | File saved and copied as `app.py` |
-| Step 4 (apply) before Step 5 (build) | `ImagePullBackOff` – image not in the cluster yet | Image loaded with `minikube image load`, Pods recreated by the ReplicaSet |
-| Step 5: `docker build -t flask-app .` inside Minikube | Tag does not match `flashsale:1.0`; `docker-env` build fails on containerd | Built as `flashsale:1.0` on the host and loaded into Minikube |
+| Step 2: `minikube start --nodes=1` | Minikube v1.39.0 defaults to containerd, where Step 5's `docker-env` build fails | `--container-runtime=docker` added |
+| Step 4 (apply) before Step 5 (build) | `ImagePullBackOff` – image not in the cluster yet | Pods deleted after the build; the ReplicaSet recreates them |
+| Step 5: `docker build -t flask-app .` | Builds inside Minikube, but the tag does not match `flashsale:1.0` in the YAML | Also built inside Minikube as `flashsale:1.0` |
 | Step 7: `kubectl scale rs flask-app-rs` | `NotFound` – the YAML creates `flashsale-rs` | `kubectl scale rs flashsale-rs --replicas=5` |
 
 ## 7. Q&A
