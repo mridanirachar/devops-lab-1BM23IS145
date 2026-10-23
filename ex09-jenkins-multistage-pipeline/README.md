@@ -182,7 +182,7 @@ apt-get update
 ```
 ![apt over https](screenshots/06-apt-https-fix.png)
 
-Then the manual's packages `python3`, pip and `python3-flask` were installed in one command and checked:
+Then the manual's packages `python3`, pip and `python3-flask` were installed (first in one command) and checked:
 ```bash
 apt-get install -y python3 python3-pip python3-flask
 python3 -c "import flask; print(flask.__version__)"
@@ -191,6 +191,35 @@ python3 -c "import flask; print(flask.__version__)"
 3.1.1
 ```
 ![Python and Flask installed](screenshots/07-python-installed.png)
+
+The manual's three install commands, run separately exactly as written, confirm that each package is installed (apt maps `pip` to `python3-pip`):
+```bash
+apt install python3
+apt install pip
+apt install python3-flask
+```
+```text
+python3 is already the newest version (3.13.5-1).
+Note, selecting 'python3-pip' instead of 'pip'
+python3-pip is already the newest version (25.1.1+dfsg-1).
+python3-flask is already the newest version (3.1.1-1+deb13u1).
+```
+![Manual apt install commands](screenshots/11-manual-apt-installs.png)
+
+The test command of the Jenkinsfile's Test stage, run by hand in the pipeline workspace:
+```bash
+cd /var/jenkins_home/workspace/Python-MultiStage-Pipeline
+python3 -m unittest discover -s .
+```
+```text
+Hello, Jenkins Multi-Stage Pipeline!
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.019s
+
+OK
+```
+![unittest in the workspace](screenshots/12-manual-unittest.png)
 
 The manual's `apt install python3.11-venv`, run exactly as written, fails because this Jenkins image ships Python **3.13**, not 3.11:
 ```text
