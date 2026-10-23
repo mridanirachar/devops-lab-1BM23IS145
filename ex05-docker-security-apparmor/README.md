@@ -130,7 +130,27 @@ The profile cannot be loaded, because the WSL2 kernel has AppArmor disabled.
 
 ![apparmor_parser fails](screenshots/03-apparmor-parser-error.png)
 
-**c. Run the Docker container with the profile:**
+**c. Run the Docker container with the profile** – the manual's command, run exactly as written:
+```bash
+docker run --security-opt="apparmor=my-apparmor-profile" -p 5000:5000 flask-apparmor
+```
+```text
+ * Serving Flask app 'app'
+ * Debug mode: off
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.17.0.2:5000
+Press CTRL+C to quit
+```
+Docker starts the container without any error about the profile:
+
+![Manual docker run with --security-opt](screenshots/10-manual-run-security-opt.png)
+
+The app is reachable at `http://localhost:5000`:
+
+![App in browser](screenshots/11-manual-run-browser.png)
+
+To check whether the profile is actually enforced, the same container was started in the background with a name, inspected, and a denied action was tried:
 ```bash
 docker run -d --name flask-secure --security-opt="apparmor=my-apparmor-profile" -p 5000:5000 flask-apparmor
 docker inspect flask-secure --format 'SecurityOpt={{.HostConfig.SecurityOpt}}  AppArmorProfile={{.AppArmorProfile}}'
