@@ -31,10 +31,11 @@ Section 6 shows, with screenshots, that the short manual page's version fails wi
 | `Dockerfile` | Builds the `flask-api` image (Part 7; same instructions, with the manual page's comments) |
 | `manual-original/` | The manual page's original files, kept to show why they fail (Section 6) |
 
-## 5. Steps (walkthrough Parts 1–26)
+## 5. Steps (manual Tasks 1–6, each done with the walkthrough Parts 1–26)
 
-### Part 1 – Verify Docker
-### Part 3 – Create the Docker network
+### Task 1: Create a bridge network · Task 2: Verify the network
+#### Part 1 – Verify Docker
+#### Part 3 – Create the Docker network
 ```bash
 docker --version
 docker info | head -12
@@ -57,7 +58,8 @@ ca4de4d39258   host               host      local
 ```
 ![Docker and network](screenshots/10-docker-and-network.png)
 
-### Part 4 – Inspect the network
+### Task 3: Inspect the network
+#### Part 4 – Inspect the network
 ```bash
 docker network inspect my-bridge-net
 ```
@@ -72,7 +74,8 @@ The network has its own subnet `172.18.0.0/16`; no containers are attached yet.
 
 ![Network inspect](screenshots/11-network-inspect.png)
 
-### Part 5 – Create the Flask application
+### Task 4: Launch containers
+#### Part 5 – Create the Flask application
 `app.py`:
 ```python
 from flask import Flask, jsonify
@@ -92,14 +95,14 @@ if __name__ == '__main__':
 ```
 `host='0.0.0.0'` makes Flask listen on all interfaces inside the container instead of only `127.0.0.1`, so the published port can reach it.
 
-### Part 6 – Create `requirements.txt`
+#### Part 6 – Create `requirements.txt`
 ```text
 Flask==2.0.1
 Werkzeug==2.0.3
 ```
 Werkzeug is pinned because Flask 2.0.1 fails with newer Werkzeug releases (Section 6).
 
-### Part 7 – Create the Dockerfile
+#### Part 7 – Create the Dockerfile
 ```dockerfile
 # Use the official Python image from the Docker Hub
 FROM python:3.9-slim
@@ -121,7 +124,7 @@ EXPOSE 5001
 CMD ["python", "app.py"]
 ```
 
-### Part 8 – Build the Flask image
+#### Part 8 – Build the Flask image
 ```bash
 docker build -t flask-api .
 docker images flask-api
@@ -135,7 +138,7 @@ flask-api:latest   ef7d85a3bf6f        200MB         48.8MB
 ```
 ![Image built](screenshots/12-build.png)
 
-### Part 9 – Test the Flask image independently
+#### Part 9 – Test the Flask image independently
 ```bash
 docker run -d --name flask-test -p 5001:5001 flask-api
 docker ps
@@ -149,8 +152,8 @@ CONTAINER ID   IMAGE       COMMAND           STATUS         PORTS               
 ```
 ![Flask test](screenshots/13-flask-test-curl.png)
 
-### Part 10 – Start MySQL
-### Part 11 – Start Redis
+#### Part 10 – Start MySQL
+#### Part 11 – Start Redis
 ```bash
 docker run -d --name mysql --network my-bridge-net -e MYSQL_ROOT_PASSWORD=rootpass -e MYSQL_DATABASE=devopsdb mysql:latest
 docker run -d --name redis --network my-bridge-net redis:latest
@@ -165,7 +168,7 @@ flask-api      "python app.py"          Up 4 minutes   0.0.0.0:5001->5001/tcp   
 ```
 ![MySQL and Redis](screenshots/14-mysql-redis.png)
 
-### Part 12 – Verify the network
+#### Part 12 – Verify the network
 Containers attached to `my-bridge-net` (the `Containers` section of `docker network inspect`):
 ```bash
 docker network inspect my-bridge-net --format '{{range .Containers}}{{.Name}}  {{.IPv4Address}}{{println}}{{end}}'
@@ -176,7 +179,7 @@ mysql  172.18.0.2/16
 ```
 ![Containers on the network](screenshots/15-network-containers.png)
 
-### Part 13 – Start Flask on the same network
+#### Part 13 – Start Flask on the same network
 ```bash
 docker rm -f flask-test
 docker run -d --name flask --network my-bridge-net -p 5001:5001 flask-api
@@ -193,10 +196,11 @@ Three containers: `flask`, `mysql` and `redis`.
 
 ![Flask on the network](screenshots/16-flask-on-network.png)
 
-### Part 14 – Understand `-p 5001:5001`
+#### Part 14 – Understand `-p 5001:5001`
 `-p HOST_PORT:CONTAINER_PORT` maps host port 5001 to container port 5001. Port publishing is only for access from outside the Docker network; Flask does not need published MySQL or Redis ports to reach them on the same network.
 
-### Part 15 – Test the Flask API
+### Task 5: Test connectivity
+#### Part 15 – Test the Flask API
 ```bash
 curl http://localhost:5001/about
 ```
@@ -205,8 +209,8 @@ curl http://localhost:5001/about
 ```
 ![API test](screenshots/17-curl-api.png)
 
-### Part 16 – Enter the Flask container
-### Part 17 – Test DNS resolution
+#### Part 16 – Enter the Flask container
+#### Part 17 – Test DNS resolution
 ```bash
 docker exec -it flask bash
 ```
@@ -236,8 +240,8 @@ Docker's embedded DNS resolves the container names, so Flask reaches MySQL and R
 
 ![Ping and getent](screenshots/18-ping-getent.png)
 
-### Part 18 – Test Redis
-### Part 19 – Test MySQL
+#### Part 18 – Test Redis
+#### Part 19 – Test MySQL
 ```bash
 docker exec -it redis redis-cli ping
 docker exec -it mysql mysql -uroot -prootpass -e "SHOW DATABASES;"
@@ -259,7 +263,7 @@ Redis answers `PONG`, and MySQL lists the `devopsdb` database created through `M
 
 ![Redis and MySQL](screenshots/19-redis-mysql.png)
 
-### Part 20 – Final communication architecture
+#### Part 20 – Final communication architecture
 ```text
 Host ── localhost:5001 ──▶ flask (172.18.0.4)
                               │  my-bridge-net
@@ -269,7 +273,7 @@ Host ── localhost:5001 ──▶ flask (172.18.0.4)
 ```
 Host → Flask uses the published port; Flask → MySQL and Flask → Redis use the internal network and container names.
 
-### Part 21 – Verify everything
+#### Part 21 – Verify everything
 ```bash
 docker ps
 docker network inspect my-bridge-net --format '{{range .Containers}}{{.Name}}  {{.IPv4Address}}{{println}}{{end}}'
@@ -291,7 +295,7 @@ mysql  172.18.0.2/16
 ```
 ![Verify everything](screenshots/20-verify-all.png)
 
-### Part 24 – Final verification checklist
+#### Part 24 – Final verification checklist
 | # | Check | Result |
 |---|---|---|
 | 1 | Docker works | ✅ Part 1 |
@@ -305,8 +309,9 @@ mysql  172.18.0.2/16
 | 9 | Redis DNS resolution | ✅ `172.18.0.3 redis` |
 | 10 | Cleanup complete | ✅ Parts 25–26 |
 
-### Part 25 – Clean up containers
-### Part 26 – Remove the network
+### Task 6: Clean up
+#### Part 25 – Clean up containers
+#### Part 26 – Remove the network
 ```bash
 docker stop mysql redis flask
 docker rm mysql redis flask
@@ -333,7 +338,7 @@ The manual page's original files (kept in `manual-original/`) were built and run
 ![Flask crashes without the Werkzeug pin](screenshots/07-manual-flask-crash.png)
 ![No ping in the image](screenshots/08-manual-no-ping.png)
 
-## 7. Questions (walkthrough Part 22)
+## 7. Questions (manual page and walkthrough Part 22)
 1. **What is the purpose of `--net`?** It specifies the Docker network a container connects to; the modern form is `--network`.
 2. **How do containers communicate on the same network?** By container name or IP address. Names are preferred because IPs can change when containers are recreated – here `mysql` → `172.18.0.2`, `redis` → `172.18.0.3`.
 3. **Bridge vs host networking?** A bridge network gives each container its own network namespace connected through Docker networking; host networking shares the host's network stack directly.
