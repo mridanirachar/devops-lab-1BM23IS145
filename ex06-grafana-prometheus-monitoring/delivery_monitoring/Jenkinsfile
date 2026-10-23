@@ -43,7 +43,7 @@ pipeline {
         }
         stage('Build Docker Image') {
             steps {
-                sh 'docker build --network=host -t delivery_metrics .'
+                sh 'docker build -t delivery_metrics .'
             }
         }
         stage('Run Application') {

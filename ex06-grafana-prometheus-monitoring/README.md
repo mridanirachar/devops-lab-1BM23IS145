@@ -21,7 +21,7 @@ Created as in the manual (`mkdir delivery_monitoring`, `cd delivery_monitoring`)
 | `prometheus.yml` | Scrape config (`prometheus` + `delivery_service`) and rule file |
 | `alert_rules.yml` | `HighPendingDeliveries` (> 10 for 15s) and `HighAverageDeliveryTime` (> 30) – identical to the manual |
 | `Jenkinsfile.manual` | The manual's pipeline, unchanged |
-| `Jenkinsfile` | The pipeline with the 4 changes needed to run (Step 5) |
+| `Jenkinsfile` | The pipeline with the 3 changes needed to run (Step 5) |
 | `Dockerfile` | Image for `delivery_metrics`, needed by the pipeline (not provided by the manual) |
 | `grafana-dashboard.json` | JSON of the 4-panel dashboard built in Step 4 |
 
@@ -302,7 +302,6 @@ Jenkinsfile changes (`Jenkinsfile.manual` → `Jenkinsfile`):
 |---|---|---|---|
 | Setup Workspace | `localSourcePath = '/path/to/your/local/files' // Replace with your actual path` | `'/delivery_monitoring'` | Placeholder the manual asks to replace |
 | Setup Workspace | – | Also copy `Dockerfile` | The manual provides no Dockerfile for `delivery_metrics` |
-| Build Docker Image | `docker build -t delivery_metrics .` | `--network=host` | pip could not reach PyPI from the default build network |
 | Run Prometheus & Grafana | `docker run -v $WORKSPACE/...` | `docker create` + `docker cp` + `docker start` | `$WORKSPACE` paths exist inside the Jenkins container, not on the Docker host |
 
 ![Adapted Prometheus stage](screenshots/26-jenkinsfile-changes.png)
@@ -319,6 +318,32 @@ Jenkinsfile changes (`Jenkinsfile.manual` → `Jenkinsfile`):
 Finished: SUCCESS
 ```
 ![Pipeline build #3 SUCCESS](screenshots/27-pipeline-success.png)
+
+Build #3 still used `docker build --network=host`, because at that time `pip install` inside the build could not reach PyPI on the default build network. Once the network worked, the flag was removed so the Build stage is exactly the manual's line, the old `delivery_metrics` image was deleted (so `pip install` really runs again instead of being cached), and the job was run again:
+```groovy
+stage('Build Docker Image') {
+    steps {
+        sh 'docker build -t delivery_metrics .'
+    }
+}
+```
+![Build stage as in the manual](screenshots/41-jenkinsfile-no-network-host.png)
+
+**Build #4 – `Finished: SUCCESS`** with the manual's build command:
+```text
++ docker build -t delivery_metrics .
+#8 [4/4] RUN pip install --no-cache-dir prometheus-client
+#8 4.574 Successfully installed prometheus-client-0.26.0
+#9 naming to docker.io/library/delivery_metrics:latest 0.0s done
++ docker run -d -p 8000:8000 --name delivery_metrics delivery_metrics
++ docker create --name prometheus -p 9090:9090 prom/prometheus
++ docker start prometheus
++ docker run -d --name grafana -p 3000:3000 grafana/grafana
+[Pipeline] End of Pipeline
+Finished: SUCCESS
+```
+![Build #4: docker build -t delivery_metrics .](screenshots/42a-build-no-network-host.png)
+![Build #4 SUCCESS](screenshots/42b-pipeline-success.png)
 
 The stack started by Jenkins is scraped successfully – both targets UP:
 
@@ -347,7 +372,7 @@ The file in this repo was set back to `randint(10, 20)` afterwards, to match Ste
 | Prometheus `--network=host` | `localhost:9090` not reachable (Docker Desktop VM) | `-p 9090:9090`, as in the manual's own Jenkinsfile |
 | Target `172.17.0.1:8000` | `delivery_service` DOWN: `connection refused` | `host.docker.internal:8000`, as the manual's note recommends |
 | Jenkins exited: `docker rm` + fresh instance | – | `docker start jenkins`, to keep the Exercise 7–9 setup |
-| Jenkinsfile | Build #2 fails at Pre-check Docker | 4 documented changes → build #3 `SUCCESS` |
+| Jenkinsfile | Build #2 fails at Pre-check Docker | 3 documented changes → builds #3 and #4 `SUCCESS` |
 
 ## 6. Expected outputs (from the manual)
 | # | Expected output | Achieved |
@@ -359,4 +384,4 @@ The file in this repo was set back to `randint(10, 20)` afterwards, to match Ste
 | 5 | Prometheus alerts for high pending deliveries | ✅ Step 6 (`HighPendingDeliveries` FIRING) |
 
 ## 7. Result
-Delivery metrics were exposed on `/metrics`, scraped by Prometheus, visualised live on a 4-panel Grafana dashboard, and the alert rules fired when pending deliveries were raised to 50–100. The manual's Jenkinsfile was first run unchanged and its failure point documented; with 4 documented changes the Jenkins pipeline then finished with `SUCCESS` (build #3) and started the whole stack.
+Delivery metrics were exposed on `/metrics`, scraped by Prometheus, visualised live on a 4-panel Grafana dashboard, and the alert rules fired when pending deliveries were raised to 50–100. The manual's Jenkinsfile was first run unchanged and its failure point documented; with 3 documented changes the Jenkins pipeline then finished with `SUCCESS` (builds #3 and #4) and started the whole stack.
