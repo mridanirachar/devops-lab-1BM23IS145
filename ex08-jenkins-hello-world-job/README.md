@@ -44,7 +44,19 @@ chmod +x hello-world.sh
 
 #### (3) Initialize a local Git repository
 #### (4) Add the script to the repository
-Git was already configured with the author's name and e-mail (`git config --global user.name ...`, `git config --global user.email ...`), so only `git init` was needed:
+Configure Git with the author's name and e-mail:
+```bash
+git config --global user.name "Mridani R Achar"
+git config --global user.email "mridanir.is23@bmsce.ac.in"
+git config --global --list | grep user
+```
+```text
+user.name=Mridani R Achar
+user.email=mridanir.is23@bmsce.ac.in
+```
+![git config](screenshots/12-git-config.png)
+
+Then initialize the repository and add the script:
 ```bash
 git init
 git add hello-world.sh
