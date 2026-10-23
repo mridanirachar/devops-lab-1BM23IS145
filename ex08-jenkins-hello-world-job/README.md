@@ -25,8 +25,14 @@ Repository name **devops-sample-code**, description *"A demo repository for Jenk
 
 ![Empty GitHub repository](screenshots/01-github-repo.png)
 
-#### (1b) Personal access token
-A personal access token is needed to push over HTTPS. The existing classic token (repo scope) was used instead of creating a new fine-grained one; both work for pushing to this repository.
+#### (1b) Create a fine-grained personal access token
+GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token, following the GitHub guide linked in the manual:
+- **Token name:** `devops-sample-code`, description *"Token for committing code to devops-sample-code"*
+- **Expiration:** 30 days (Nov 22, 2026)
+- **Repository access:** only `mridanirachar/devops-sample-code`
+- **Repository permissions:** Contents – **Read and write** (Metadata – Read-only is added automatically)
+
+![Fine-grained token](screenshots/13-fine-grained-token.png)
 
 #### (2) Create the script locally
 ```bash
@@ -157,7 +163,6 @@ Finished: SUCCESS
 |---|---|---|
 | `git push -u origin main` after `git init` | `error: src refspec main does not match any` (the local branch is `master`) | `git branch -M main`, then push |
 | Jenkins default Branch Specifier `*/master` | Build #1: `Couldn't find any revision to build` → FAILURE | Branch Specifier set to `*/main` |
-| (1b) Create a fine-grained token | – | Existing classic token (repo scope) used |
 
 ## 6. Result
 Jenkins cloned `devops-sample-code` from GitHub, ran `hello-world.sh` and printed **`Hello, Jenkins!`** with **`Finished: SUCCESS`** – the manual's expected console output.
