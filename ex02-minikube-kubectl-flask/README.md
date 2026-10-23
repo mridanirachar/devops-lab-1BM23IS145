@@ -151,6 +151,8 @@ flask-app-59f7cdccb4-8cttm   1/1     Running   0          11s
 ![kubectl get pods -l app=flask-app](screenshots/02-deployment.png)
 
 ### Step 9: Describe the Deployment
+*(The screenshots for Steps 9 and 11–13 come from the first run of the exercise, before Minikube was restarted with the Docker runtime, so Pod names and ports differ from Steps 1–10. The final check at the end of Step 13 uses the new run.)*
+
 **Command:**
 ```bash
 kubectl describe deployment flask-app
