@@ -8,7 +8,7 @@ Set up a single-node Kubernetes cluster with Minikube and deploy a Python Flask 
 |---|---|
 | Operating system | Windows 11 + WSL2 (Ubuntu 24.04) |
 | Container platform | Docker Desktop |
-| Kubernetes | Minikube v1.39.0 (docker driver, containerd runtime), Kubernetes v1.37.0 |
+| Kubernetes | Minikube v1.39.0 (docker driver, **Docker runtime**), Kubernetes v1.37.0 |
 | CLI | kubectl |
 
 ## 3. Files in this folder
@@ -22,8 +22,20 @@ Set up a single-node Kubernetes cluster with Minikube and deploy a Python Flask 
 
 ### Step 1: Start Minikube
 ```bash
-minikube start
+minikube start --container-runtime=docker
 ```
+```text
+😄  minikube v1.39.0 on Ubuntu 24.04 (kvm/amd64)
+✨  Automatically selected the docker driver
+👍  Starting "minikube" primary control-plane node in "minikube" cluster
+🔥  Creating docker container (CPUs=2, Memory=3072MB) ...
+🐳  Preparing Kubernetes v1.37.0 on Docker 29.7.2 ...
+🔎  Verifying Kubernetes components...
+🏄  Done! kubectl is now configured to use "minikube" cluster and "default" namespace by default
+```
+`--container-runtime=docker` was added because Minikube v1.39.0 uses the **containerd** runtime by default, and the manual's Step 4 (`eval $(minikube docker-env)` + `docker build`) only works with the Docker runtime. With containerd the build failed with `404 page not found`; with the Docker runtime it runs exactly as written.
+
+![minikube start with the Docker runtime](screenshots/13-minikube-start-docker.png)
 
 ### Step 2: Create a Flask application
 `app.py`:
@@ -50,41 +62,29 @@ CMD ["python", "app.py"]
 ```
 
 ### Step 4: Build the Docker image with Minikube's Docker daemon
-**Manual commands, run exactly as written:**
+**Commands, exactly as in the manual:**
 ```bash
 minikube docker-env
 eval $(minikube docker-env)
 docker build -t flask-app .
 ```
-`minikube docker-env` runs, but warns: *"Using the docker-env command with the containerd runtime is a highly experimental feature"*.
-
-![minikube docker-env](screenshots/09-manual-docker-env.png)
-
-The build inside Minikube then fails:
-```text
-ERROR: failed to build: Error response from daemon: 404 page not found
-```
-![Build inside Minikube fails](screenshots/10-manual-build-in-minikube.png)
-
-**Why:** this Minikube cluster uses the **containerd** runtime, and building through `docker-env` only works with the Docker runtime.
-
-**What was done instead:** the same Dockerfile was built with the host Docker and the image was copied into the cluster:
-```bash
-docker build -t flask-app .
-minikube image load flask-app:latest
-minikube image ls | grep flask
-```
 **Output:**
 ```text
-docker.io/library/flask-app:latest
+export DOCKER_TLS_VERIFY="1"
+export DOCKER_HOST="tcp://127.0.0.1:50064"
+export DOCKER_CERT_PATH="/home/mridani/.minikube/certs"
+export MINIKUBE_ACTIVE_DOCKERD="minikube"
+...
+[+] Building 28.7s (10/10) FINISHED
+ => [1/4] FROM docker.io/library/python:3.8-slim
+ => [2/4] WORKDIR /app
+ => [3/4] COPY . /app
+ => [4/4] RUN pip install flask
+ => => naming to docker.io/library/flask-app
 ```
-![Image loaded into Minikube](screenshots/01-image-loaded.png)
+After `eval $(minikube docker-env)` the `docker` command talks to the Docker daemon **inside Minikube**, so the image is built directly in the cluster.
 
-Rebuilding with the manual's Dockerfile (`COPY . /app`) and loading it gives the same image:
-
-![Rebuild with the manual Dockerfile](screenshots/11-rebuild-copy-dot.png)
-
-Because the YAML uses `imagePullPolicy: Never` (Step 5), Kubernetes uses this local image instead of pulling from Docker Hub. *(Starting Minikube with `--container-runtime=docker` would let the manual's `docker-env` build run as written.)*
+![docker-env and build inside Minikube](screenshots/14-docker-env-build.png)
 
 ### Step 5: Create the Kubernetes Deployment YAML file
 `flask-deployment.yaml` (Deployment part, as in the manual):
@@ -114,21 +114,29 @@ spec:
 ### Step 6: Deploy the application
 ### Step 7: Check deployment status
 ### Step 8: Verify Pods created by the Deployment
-**Commands:**
+**Commands** (in the same terminal, so `docker images` lists Minikube's images):
 ```bash
+docker images | grep flask-app
 kubectl apply -f flask-deployment.yaml
 kubectl get deployments
-kubectl get pods -l app=flask-app
+kubectl get pods
 ```
 **Output:**
 ```text
+flask-app:latest   0c3e9318c400   137MB
 deployment.apps/flask-app created
+service/flask-app-service created
 NAME        READY   UP-TO-DATE   AVAILABLE   AGE
-flask-app   1/1     1            1           10s
+flask-app   0/1     1            0           1s
+NAME                         READY   STATUS              RESTARTS   AGE
+flask-app-59f7cdccb4-vpxr7   0/1     ContainerCreating   0          1s
+...
 NAME                         READY   STATUS    RESTARTS   AGE
-flask-app-59f7cdccb4-8cttm   1/1     Running   0          11s
+flask-app-59f7cdccb4-vpxr7   1/1     Running   0          26s
 ```
-![Deployment and Pod running](screenshots/02-deployment.png)
+The image built in Step 4 is inside Minikube, and because of `imagePullPolicy: Never` Kubernetes uses it instead of pulling from Docker Hub. (The applied file is the final version from Step 13, so the Service is created too; Step 12 below shows the state before the Service existed.)
+
+![Image in Minikube, Deployment and Pod running](screenshots/15-deploy-get-pods.png)
 
 ### Step 9: Describe the Deployment
 **Command:**
@@ -156,9 +164,9 @@ Events:
 ![Deployment description](screenshots/03-describe.png)
 
 ### Step 10: View deployment logs
-**Command** (the manual uses `kubectl logs <pod-name>`; selecting the Pod by its label gives the same logs):
+**Command:**
 ```bash
-kubectl logs -l app=flask-app
+kubectl logs flask-app-59f7cdccb4-vpxr7
 ```
 **Output:**
 ```text
@@ -166,10 +174,10 @@ kubectl logs -l app=flask-app
  * Debug mode: off
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:15000
- * Running on http://10.244.0.4:15000
+ * Running on http://10.244.0.3:15000
 Press CTRL+C to quit
 ```
-![Flask logs](screenshots/04-logs.png)
+![Flask logs](screenshots/16-logs-pod-name.png)
 
 ### Step 11: Check Services
 ### Step 12: Try to access the Flask service on port 15000
@@ -244,9 +252,15 @@ The app also opens in the browser:
 
 ![App in browser](screenshots/08-browser.png)
 
-The full flow also works with the image built from the manual's Dockerfile:
-
-![Works with the manual Dockerfile](screenshots/12-works-with-manual-dockerfile.png)
+With the image built inside Minikube (Steps 1–10 above), the Service works the same way:
+```bash
+minikube service flask-app-service --url      # http://127.0.0.1:34303
+curl http://127.0.0.1:34303                    # in a second terminal
+```
+```text
+Hello from Flask on Kubernetes!
+```
+![curl with the image built inside Minikube](screenshots/17-curl-docker-runtime.png)
 
 ### Clean up
 ```bash
@@ -256,8 +270,7 @@ kubectl delete -f flask-deployment.yaml
 ## 5. Changes from the manual
 | Manual | What happened | What was done |
 |---|---|---|
-| Step 4: `eval $(minikube docker-env)` + `docker build -t flask-app .` | `ERROR: failed to build: ... 404 page not found` (this cluster uses the containerd runtime) | Built with the host Docker, then `minikube image load flask-app:latest` |
-| Step 10: `kubectl logs <pod-name>` | – | `kubectl logs -l app=flask-app` (same logs, Pod selected by label) |
+| Step 1: `minikube start` | Minikube v1.39.0 defaults to the containerd runtime, where Step 4's `docker-env` build fails with `404 page not found` | `minikube start --container-runtime=docker`; all other commands run exactly as written |
 
 All files in this folder (`app.py`, `Dockerfile`, `flask-deployment.yaml`) are identical to the manual.
 
