@@ -113,6 +113,19 @@ kubectl delete svc hello-k8s
 kubectl delete pod hello-k8s
 ```
 
+## 5b. System Internal Details (from the manual)
+What happens inside Kubernetes when `kubectl run hello-k8s --image=nginx --port=80` runs (from the manual's diagram):
+
+1. **kubectl → kube-apiserver:** kubectl sends a Pod manifest (Pod name `hello-k8s`, image `nginx`, port `80`) to the API server through its REST API. In effect: "please create this Pod for me".
+2. **kube-apiserver → etcd:** the API server receives the request and stores the Pod manifest in etcd: "there should be a Pod called `hello-k8s` running an nginx container on port 80".
+3. **kube-scheduler:** watches the desired state in etcd and chooses a worker node that has enough CPU and memory.
+4. **Scheduler → kubelet:** the kubelet is the agent on each worker node. It is told: "you run this Pod on your system".
+5. **kubelet → container runtime (CRI-O in the diagram):** pulls the nginx image from Docker Hub (or another registry), creates a container from the image, sets up the filesystem and mounts volumes, then runs the process in an isolated Linux namespace (PID, network, cgroup). Minikube uses its own runtime (containerd by default) instead of CRI-O.
+6. **CNI (Container Network Interface):** assigns a unique IP address to the Pod, reachable inside the cluster.
+7. **kubelet → kube-apiserver:** the kubelet reports back "Pod `hello-k8s` is running", which is the status shown by `kubectl get pods`.
+
+Other components in the diagram: the control plane also has **kube-controller-manager** and **cloud-controller-manager**, and each worker node has **kube-proxy**.
+
 ## 6. Changes from the manual
 None. All five steps were run exactly as written.
 
